@@ -14,7 +14,7 @@ public class Main
 	public static void main(String[] args)
 	{
 		Analyzer analyzer = new Analyzer();
-		analyzer.Analyze();
+		analyzer.LoadGUI();
 	}
 }
 
@@ -33,18 +33,44 @@ class Analyzer
 		boolean bigEndian = true;  //Флаг указывает на то, следует ли использовать обратный (big-endian) или прямой (little-endian) порядок байтов
 		return new AudioFormat(sampleRate, sampleSizeInBits, channels, signed, bigEndian);
 	}
+
+	public void LoadGUI()
+	{
+		JButton searchBut = new JButton("Search");
+		searchBut.setBounds(202,100,95,30);
+		myFrame.add(searchBut);
+		JButton recalculateBut = new JButton("Recalculate");
+		recalculateBut.setBounds(202,200,95,30);
+		myFrame.add(recalculateBut);
+		searchBut.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e)
+			{
+				searching = true;
+				myFrame.removeAll();
+				Analyze();
+			}
+		});
+		recalculateBut.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e)
+			{
+				searching = false;
+				Analyze();
+			}
+		});
+	}
+
 	public void Analyze()
 	{
 		try
 		{
+			ArrayList<String> hashes = new ArrayList<>();
+			ArrayList<String> freqs = new ArrayList<>();
+
 			if (searching)
 			{
 				JButton b=new JButton("Stop");
-				b.setBounds(50,100,95,30);
+				b.setBounds(202,100,95,30);
 				myFrame.add(b);
-				myFrame.setSize(400,400);
-				myFrame.setLayout(null);
-				myFrame.setVisible(true);
 				b.addActionListener(new ActionListener()
 				{
 					public void actionPerformed(ActionEvent e)
@@ -59,8 +85,6 @@ class Analyzer
 				final TargetDataLine line = (TargetDataLine) AudioSystem.getLine(info);
 				line.open(format, buffer.length);
 				line.start();
-				ArrayList<String> hashes = new ArrayList<>();
-				ArrayList<String> freqs = new ArrayList<>();
 
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 				running = true;
@@ -76,7 +100,7 @@ class Analyzer
 						Complex[][] results = Transform(out);
 
 						Determinator determinator = new Determinator();
-						ArrayList<String>[] determinatedData = determinator.Determinate(results, searching);
+						ArrayList<String>[] determinatedData = determinator.Determinate(results);
 						hashes = determinatedData[0];
 						freqs = determinatedData[1];
 					}
@@ -92,31 +116,69 @@ class Analyzer
 			else
 			{
 				final AudioFormat format = getFormat();
-				File file = new File("C:\\Users\\DimK.DMITRI\\Music\\bol_vsego_mira.wav");
-				AudioInputStream in = AudioSystem.getAudioInputStream(file);
-				AudioInputStream convert = AudioSystem.getAudioInputStream(format,in);
-				byte[] data=new byte[convert.available()];
-
-				ByteArrayOutputStream out = new ByteArrayOutputStream();
-				try
+				File musicBase = new File(".\\Music");
+				String[] music = musicBase.list();
+				for (String m : music)
 				{
-					int count = convert.read(data, 0, data.length);
-					if (count > 0)
+					Path path = Paths.get(".\\Music\\" + m);
+					File file = new File(String.valueOf(path));
+					AudioInputStream in = AudioSystem.getAudioInputStream(file);
+					AudioInputStream convert = AudioSystem.getAudioInputStream(format, in);
+					byte[] data = new byte[convert.available()];
+
+					ByteArrayOutputStream out = new ByteArrayOutputStream();
+					try
 					{
-						out.write(data, 0, count);
-					}
-					System.out.println(count);
-					Complex[][] results = Transform(out);
+						int count = convert.read(data, 0, data.length);
+						if (count > 0)
+						{
+							out.write(data, 0, count);
+						}
+						Complex[][] results = Transform(out);
 
-					Determinator determinator = new Determinator();
-					determinator.Determinate(results, searching);
-					out.close();
+						Determinator determinator = new Determinator();
+						ArrayList<String>[] determinatedData = determinator.Determinate(results);
+						hashes = determinatedData[0];
+						freqs = determinatedData[1];
+						out.close();
+						while (hashes.get(hashes.size() - 1).equals("00000000000"))
+						{
+							hashes.remove(hashes.size() - 1);
+						}
+						while (hashes.get(0).equals("00000000000"))
+						{
+							hashes.remove(0);
+						}
+						path = Paths.get(".\\HashDB\\" + m).normalize();
+						String st = path.toString();
+						int index = st.indexOf(".");
+						String name = st.substring(0, index);
+						System.out.println(name);
+						path = Paths.get(name + ".txt");
+						Files.write(path, hashes, StandardCharsets.UTF_8);
+
+						while (freqs.get(freqs.size() - 1).equals("0 0 0 0 0"))
+						{
+							freqs.remove(freqs.size() - 1);
+						}
+						while (freqs.get(0).equals("0 0 0 0 0"))
+						{
+							freqs.remove(0);
+						}
+						path = Paths.get(".\\DB\\" + m).normalize();
+						index = path.toString().indexOf(".");
+						name = path.toString().substring(0, index);
+						System.out.println(name);
+						path = Paths.get(name + ".txt");
+						Files.write(path, freqs, StandardCharsets.UTF_8);
+					}
+					catch (IOException e)
+					{
+						System.err.println("I/O problems: " + e);
+						System.exit(-1);
+					}
 				}
-				catch (IOException e)
-				{
-					System.err.println("I/O problems: " + e);
-					System.exit(-1);
-				}
+
 			}
 		}
 		catch (Exception e)
@@ -384,7 +446,7 @@ class Determinator
 		return i;
 	}
 
-	public ArrayList<String>[] Determinate(Complex[][] results, boolean _searching) throws IOException
+	public ArrayList<String>[] Determinate(Complex[][] results) throws IOException
 	{
 		double[] highscores = new double[AnalyzeData.UPPER_LIMIT];
 		int[] recordPoints = new int[AnalyzeData.UPPER_LIMIT];
@@ -419,30 +481,6 @@ class Determinator
 			}
 			highscores = new double[AnalyzeData.UPPER_LIMIT];
 			recordPoints = new int[AnalyzeData.UPPER_LIMIT];
-		}
-		if (!_searching)
-		{
-			while (hashes.get(hashes.size() - 1).equals("00000000000"))
-			{
-				hashes.remove(hashes.size() - 1);
-			}
-			while (hashes.get(0).equals("00000000000"))
-			{
-				hashes.remove(0);
-			}
-			Path file = Paths.get(".\\HashDB\\2.txt");
-			Files.write(file, hashes, StandardCharsets.UTF_8);
-
-			while (freqs.get(freqs.size() - 1).equals("0 0 0 0 0"))
-			{
-				freqs.remove(freqs.size() - 1);
-			}
-			while (freqs.get(0).equals("0 0 0 0 0"))
-			{
-				freqs.remove(0);
-			}
-			file = Paths.get(".\\DB\\2.txt");
-			Files.write(file, freqs, StandardCharsets.UTF_8);
 		}
 		return new ArrayList[]{hashes, freqs};
 	}
@@ -486,10 +524,11 @@ class SubtractionDistance
 
 class MyFrame extends JFrame
 {
-	private Complex[][] results;
 	MyFrame()
 	{
-		this.setBounds(0, 0,1280,500);
+		this.setBounds(0, 0,500,500);
+		this.setSize(500,500);
+		this.setLayout(null);
 		this.setVisible(true);
 		this.setLocationRelativeTo(null);
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
