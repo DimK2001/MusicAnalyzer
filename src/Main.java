@@ -1,14 +1,11 @@
 import com.vm.jcomplex.Complex;
 import javax.sound.sampled.*;
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class Main
 {
@@ -285,7 +282,6 @@ class Analyzer
 
 		for(int i = 0; i < Objects.requireNonNull(db).length; ++i)
 		{
-			System.out.println(i);
 			////////////////////////////////////////////////////////// Поиск по хешам
 			Path pathHash = Paths.get(".\\HashDB\\" + db[i]);
 			List<String> readHash = Files.readAllLines(pathHash);
@@ -346,7 +342,8 @@ class Analyzer
 							distanceSFr = dS;
 						}
 					}
-				} else
+				}
+				else
 				{
 					for (int j = 0; j < freqs.size() - Files.lines(pathFr).count(); ++j)
 					{
@@ -370,27 +367,27 @@ class Analyzer
 			if (fast)
 			{
 				////////////////////////////////////////////////////////// Быстрый поиск по смещению
-				ArrayList<Integer> offset = new ArrayList<>();
+				HashMap<String, Integer> offset = new HashMap<>();
 				for (int j = 0; j < readHash.size(); ++j)
 				{
 					for (int k = 0; k < hashes.size(); ++k)
 					{
 						if (readHash.get(j).equals(hashes.get(k)))
 						{
-							offset.add(j - k);
+
+							if (!offset.containsKey(String.valueOf(j - k)))
+							{
+								offset.put(String.valueOf(j - k), 1);
+							}
+							else
+							{
+								offset.put(String.valueOf(j - k), offset.get(String.valueOf(j - k)) + 1);
+							}
 						}
 					}
 				}
-				for (int j = 0; j < offset.size() - 1; ++j)
+				for (int match : offset.values())
 				{
-					int match = 0;
-					for (int k = j + 1; k < offset.size(); k++)
-					{
-						if (offset.get(j).equals(offset.get(k)))
-						{
-							++match;
-						}
-					}
 					if (match > matches)
 					{
 						matches = match;
@@ -485,13 +482,13 @@ class FFT
 class AnalyzeData
 {
 	public static final int CHUNK_SIZE = 512;
-	public static final int LOWER_LIMIT = 40;
-	public static final int UPPER_LIMIT = 510;
+	public static final int LOWER_LIMIT = 30;
+	public static final int UPPER_LIMIT = 512;
 }
 
 class Determinator
 {
-	public final int[] RANGE = new int[] { 80, 130, 220, 350, AnalyzeData.UPPER_LIMIT+1 };
+	public final int[] RANGE = new int[] { 65, 130, 250, 400, AnalyzeData.UPPER_LIMIT+1 };
 	private ArrayList<String> hashes = new ArrayList<>();
 	private ArrayList<String> freqs = new ArrayList<>();
 
@@ -518,7 +515,7 @@ class Determinator
 				//Получим силу сигнала
 				double mag = Math.log(results[i][freq].abs() + 1);
 
-				//Выясним, в каком мы диапазоне:
+				//Выясним, в каком мы диапазоне
 				int index = getIndex(freq);
 
 				//Сохраним самое высокое значение силы сигнала и соответствующую частоту
