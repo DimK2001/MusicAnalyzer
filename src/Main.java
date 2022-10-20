@@ -47,7 +47,15 @@ class Analyzer
 			{
 				searching = true;
 				myFrame.removeAll();
-				Analyze();
+				JButton hamming = new JButton("Hash search");
+				hamming.setBounds(100,100,150,30);
+				myFrame.add(hamming);
+				JButton frequencies = new JButton("Frequencies search");
+				frequencies.setBounds(100,150,150,30);
+				myFrame.add(frequencies);
+				JButton fast = new JButton("Fast search");
+				fast.setBounds(100,200,150,30);
+				myFrame.add(fast);
 			}
 		});
 		recalculateBut.addActionListener(new ActionListener() {
