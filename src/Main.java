@@ -1,6 +1,7 @@
 import com.vm.jcomplex.Complex;
 import javax.sound.sampled.*;
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -144,7 +145,10 @@ class Analyzer
 						freqs = determinatedData[1];
 					}
 					out.close();
-					search(hashes, freqs);
+					String res = search(hashes, freqs);
+					JLabel label = new JLabel(res);
+					label.setBounds(202,200,95,30);
+					myFrame.add(label);
 				}
 				catch (IOException e)
 				{
@@ -154,6 +158,7 @@ class Analyzer
 			}
 			else
 			{
+				//BASE/////////////////////////////////////////////////////////////////
 				final AudioFormat format = getFormat();
 				File musicBase = new File(".\\Music");
 				String[] music = musicBase.list();
@@ -227,7 +232,7 @@ class Analyzer
 		}
 	}
 
-	private void search(ArrayList<String> hashes, ArrayList<String> freqs) throws IOException
+	private String search(ArrayList<String> hashes, ArrayList<String> freqs) throws IOException
 	{
 		File file = new File(".\\DB");
 		String[] db = file.list();
@@ -261,7 +266,6 @@ class Analyzer
 							foundHHash = i;
 							distanceHHash = d;
 						}
-						d = 0;
 					}
 				} else {
 					for (int j = 0; j < hashes.size() - Files.lines(pathHash).count(); ++j) {
@@ -275,6 +279,7 @@ class Analyzer
 						}
 					}
 				}
+				return "Hash Hamming: " + distanceHHash + " " + foundHHash;
 			}
 			////////////////////////////////////////////////////////// Поиск по частотам
 			if (sub) {
@@ -309,6 +314,7 @@ class Analyzer
 						}
 					}
 				}
+				return "Frequencies Sub: " + distanceSFr + " " + foundSFr;
 			}
 			if (fast) {
 				////////////////////////////////////////////////////////// Быстрый поиск по смещению
@@ -332,11 +338,10 @@ class Analyzer
 						foundOf = i;
 					}
 				}
+				return "Offset: " + matches + " " + db[foundOf];
 			}
 		}
-		System.out.println("Hash Hamming: " + distanceHHash + " " + foundHHash);
-		System.out.println("Frequencies Sub: " + distanceSFr + " " + foundSFr);
-		System.out.println("Offset: " + matches + " " + db[foundOf]);
+		return "error";
 	}
 
 	private Complex[][] Transform(ByteArrayOutputStream out)
