@@ -239,6 +239,7 @@ class Analyzer
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			try
 			{
+				System.out.println("searching...");
 				while (running)
 				{
 					int count = line.read(buffer, 0, buffer.length);
@@ -284,28 +285,35 @@ class Analyzer
 
 		for(int i = 0; i < Objects.requireNonNull(db).length; ++i)
 		{
+			System.out.println(i);
 			////////////////////////////////////////////////////////// Поиск по хешам
 			Path pathHash = Paths.get(".\\HashDB\\" + db[i]);
 			List<String> readHash = Files.readAllLines(pathHash);
-
-			Path pathFr = Paths.get(".\\DB\\" + db[i]);
-			List<String> readFr = Files.readAllLines(pathFr);
-			if (hamming) {
-				if (Files.lines(pathHash).count() > hashes.size()) {
-					for (int j = 0; j < Files.lines(pathHash).count() - hashes.size(); ++j) {
+			if (hamming)
+			{
+				if (Files.lines(pathHash).count() > hashes.size())
+				{
+					for (int j = 0; j < Files.lines(pathHash).count() - hashes.size(); ++j)
+					{
 						int d = 0;
-						for (int k = 0; k < hashes.size(); ++k) {
+						for (int k = 0; k < hashes.size(); ++k)
+						{
 							d += HammingDistance.countDistance(Long.parseLong(readHash.get(k + j)), Long.parseLong(hashes.get(k)));
 						}
-						if (d < distanceHHash) {
+						if (d < distanceHHash)
+						{
 							foundHHash = i;
 							distanceHHash = d;
 						}
 					}
-				} else {
-					for (int j = 0; j < hashes.size() - Files.lines(pathHash).count(); ++j) {
+				}
+				else
+				{
+					for (int j = 0; j < hashes.size() - Files.lines(pathHash).count(); ++j)
+					{
 						int dH = 0;
-						for (int k = 0; k < readHash.size(); ++k) {
+						for (int k = 0; k < readHash.size(); ++k)
+						{
 							dH += HammingDistance.countDistance(Long.parseLong(readHash.get(k)), Long.parseLong(hashes.get(k + j)));
 						}
 						if (dH < distanceHHash) {
@@ -314,17 +322,22 @@ class Analyzer
 						}
 					}
 				}
-				return "Hash Hamming: " + distanceHHash + " " + foundHHash;
 			}
 			////////////////////////////////////////////////////////// Поиск по частотам
-			if (sub) {
-				if (Files.lines(pathFr).count() > freqs.size()) {
+			if (sub)
+			{
+				Path pathFr = Paths.get(".\\DB\\" + db[i]);
+				List<String> readFr = Files.readAllLines(pathFr);
+				if (Files.lines(pathFr).count() > freqs.size())
+				{
 					for (int j = 0; j < Files.lines(pathFr).count() - freqs.size(); ++j) {
 						int dS = 0;
-						for (int f = 0; f < freqs.size(); ++f) {
+						for (int f = 0; f < freqs.size(); ++f)
+						{
 							String[] wordsF = freqs.get(f).split("\\s+");
 							String[] wordsR = readFr.get(f + j).split("\\s+");
-							for (int k = 0; k < 5; ++k) {
+							for (int k = 0; k < 5; ++k)
+							{
 								dS += SubtractionDistance.countDistance(Long.parseLong(wordsF[k]), Long.parseLong(wordsR[k]));
 							}
 						}
@@ -333,13 +346,17 @@ class Analyzer
 							distanceSFr = dS;
 						}
 					}
-				} else {
-					for (int j = 0; j < freqs.size() - Files.lines(pathFr).count(); ++j) {
+				} else
+				{
+					for (int j = 0; j < freqs.size() - Files.lines(pathFr).count(); ++j)
+					{
 						int dS = 0;
-						for (int f = 0; f < readFr.size(); ++f) {
+						for (int f = 0; f < readFr.size(); ++f)
+						{
 							String[] wordsF = freqs.get(f + j).split("\\s+");
 							String[] wordsR = readFr.get(f).split("\\s+");
-							for (int k = 0; k < 5; ++k) {
+							for (int k = 0; k < 5; ++k)
+							{
 								dS += SubtractionDistance.countDistance(Long.parseLong(wordsF[k]), Long.parseLong(wordsR[k]));
 							}
 						}
@@ -349,34 +366,55 @@ class Analyzer
 						}
 					}
 				}
-				return "Frequencies Sub: " + distanceSFr + " " + foundSFr;
 			}
-			if (fast) {
+			if (fast)
+			{
 				////////////////////////////////////////////////////////// Быстрый поиск по смещению
 				ArrayList<Integer> offset = new ArrayList<>();
-				for (int j = 0; j < readHash.size(); ++j) {
-					for (int k = 0; k < hashes.size() && k <= j; ++k) {
-						if (readHash.get(j).equals(hashes.get(k))) {
+				for (int j = 0; j < readHash.size(); ++j)
+				{
+					for (int k = 0; k < hashes.size(); ++k)
+					{
+						if (readHash.get(j).equals(hashes.get(k)))
+						{
 							offset.add(j - k);
 						}
 					}
 				}
-				for (int j = 0; j < offset.size() - 1; ++j) {
+				for (int j = 0; j < offset.size() - 1; ++j)
+				{
 					int match = 0;
-					for (int k = j + 1; k < offset.size(); k++) {
-						if (offset.get(j).equals(offset.get(k))) {
+					for (int k = j + 1; k < offset.size(); k++)
+					{
+						if (offset.get(j).equals(offset.get(k)))
+						{
 							++match;
 						}
 					}
-					if (match > matches) {
+					if (match > matches)
+					{
 						matches = match;
 						foundOf = i;
 					}
 				}
-				return "Fast search found: " + matches + " matchts in " + db[foundOf];
 			}
 		}
-		return "error";
+		if (hamming)
+		{
+			return "Hash Hamming: " + distanceHHash + " distance for " + foundHHash;
+		}
+		else if (fast)
+		{
+			return "Fast search found: " + matches + " matchts in " + db[foundOf];
+		}
+		else if (sub)
+		{
+			return "Frequencies Sub: " + distanceSFr + " distance for " + foundSFr;
+		}
+		else
+		{
+			return "error";
+		}
 	}
 
 	private Complex[][] Transform(ByteArrayOutputStream out)
@@ -447,13 +485,13 @@ class FFT
 class AnalyzeData
 {
 	public static final int CHUNK_SIZE = 512;
-	public static final int LOWER_LIMIT = 30;
-	public static final int UPPER_LIMIT = 500;
+	public static final int LOWER_LIMIT = 40;
+	public static final int UPPER_LIMIT = 510;
 }
 
 class Determinator
 {
-	public final int[] RANGE = new int[] { 80, 120, 180, 300, AnalyzeData.UPPER_LIMIT+1 };
+	public final int[] RANGE = new int[] { 80, 130, 220, 350, AnalyzeData.UPPER_LIMIT+1 };
 	private ArrayList<String> hashes = new ArrayList<>();
 	private ArrayList<String> freqs = new ArrayList<>();
 
