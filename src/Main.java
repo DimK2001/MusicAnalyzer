@@ -22,6 +22,9 @@ class Analyzer
 {
 	Boolean running = true;
 	Boolean searching = true;
+	Boolean fast = false;
+	Boolean hamming = false;
+	Boolean sub = false;
 	MyFrame myFrame = new MyFrame();
 
 	private AudioFormat getFormat()
@@ -43,19 +46,47 @@ class Analyzer
 		recalculateBut.setBounds(202,200,95,30);
 		myFrame.add(recalculateBut);
 		searchBut.addActionListener(new ActionListener() {
+			@Override
 			public void actionPerformed(ActionEvent e)
 			{
 				searching = true;
 				myFrame.removeAll();
-				JButton hamming = new JButton("Hash search");
-				hamming.setBounds(100,100,150,30);
-				myFrame.add(hamming);
-				JButton frequencies = new JButton("Frequencies search");
-				frequencies.setBounds(100,150,150,30);
-				myFrame.add(frequencies);
-				JButton fast = new JButton("Fast search");
-				fast.setBounds(100,200,150,30);
-				myFrame.add(fast);
+				JButton hammingBut = new JButton("Hamming search");
+				hammingBut.setBounds(100,100,150,30);
+				myFrame.add(hammingBut);
+				JButton subBut = new JButton("Subtraction search");
+				subBut.setBounds(100,150,150,30);
+				myFrame.add(subBut);
+				JButton fastBut = new JButton("Fast search");
+				fastBut.setBounds(100,200,150,30);
+				myFrame.add(fastBut);
+				searching = true;
+				fast = false;
+				hamming = false;
+				hammingBut.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						hamming = true;
+						myFrame.removeAll();
+						Analyze();
+					}
+				});
+				subBut.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						sub = true;
+						myFrame.removeAll();
+						Analyze();
+					}
+				});
+				fastBut.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						fast = true;
+						myFrame.removeAll();
+						Analyze();
+					}
+				});
 			}
 		});
 		recalculateBut.addActionListener(new ActionListener() {
@@ -202,15 +233,11 @@ class Analyzer
 		String[] db = file.list();
 
 		//Поиск совпадения
-		/*int foundHHash = 0;
+		int foundHHash = 0;
 		int distanceHHash = 10000000;
-		int foundSHash = 0;
-		long distanceSHash = Long.MAX_VALUE;
 
-		int foundHFr = 0;
-		int distanceHFr = 10000000;
 		int foundSFr = 0;
-		long distanceSFr = Long.MAX_VALUE;*/
+		long distanceSFr = Long.MAX_VALUE;
 
 		int foundOf = 0;
 		int matches = 0;
@@ -220,148 +247,95 @@ class Analyzer
 			////////////////////////////////////////////////////////// Поиск по хешам
 			Path pathHash = Paths.get(".\\HashDB\\" + db[i]);
 			List<String> readHash = Files.readAllLines(pathHash);
-			/*if (Files.lines(pathHash).count() > hashes.size())
-			{
-				for (int j = 0; j < Files.lines(pathHash).count() - hashes.size(); ++j)
-				{
-					int d = 0;
-					for (int k = 0; k < hashes.size(); ++k)
-					{
-						d += HammingDistance.countDistance(Long.parseLong(readHash.get(k + j)), Long.parseLong(hashes.get(k)));
+
+			Path pathFr = Paths.get(".\\DB\\" + db[i]);
+			List<String> readFr = Files.readAllLines(pathFr);
+			if (hamming) {
+				if (Files.lines(pathHash).count() > hashes.size()) {
+					for (int j = 0; j < Files.lines(pathHash).count() - hashes.size(); ++j) {
+						int d = 0;
+						for (int k = 0; k < hashes.size(); ++k) {
+							d += HammingDistance.countDistance(Long.parseLong(readHash.get(k + j)), Long.parseLong(hashes.get(k)));
+						}
+						if (d < distanceHHash) {
+							foundHHash = i;
+							distanceHHash = d;
+						}
+						d = 0;
 					}
-					if (d < distanceHHash)
-					{
-						foundHHash = i;
-						distanceHHash = d;
-					}
-					d = 0;
-					for (int k = 0; k < hashes.size(); ++k)
-					{
-						d += SubtractionDistance.countDistance(Long.parseLong(readHash.get(k + j)), Long.parseLong(hashes.get(k)));
-					}
-					if (d < distanceSHash)
-					{
-						foundSHash = i;
-						distanceSHash = d;
-					}
-				}
-			}
-			else
-			{
-				for (int j = 0; j <  hashes.size() - Files.lines(pathHash).count(); ++j)
-				{
-					int dH = 0;
-					int dS = 0;
-					for (int k = 0; k < readHash.size(); ++k)
-					{
-						dH += HammingDistance.countDistance(Long.parseLong(readHash.get(k)), Long.parseLong(hashes.get(k + j)));
-						dS += SubtractionDistance.countDistance(Long.parseLong(readHash.get(k)), Long.parseLong(hashes.get(k + j)));
-					}
-					if (dH < distanceHHash)
-					{
-						foundHHash = i;
-						distanceHHash = dH;
-					}
-					if (dS < distanceSHash)
-					{
-						foundSHash = i;
-						distanceSHash = dS;
+				} else {
+					for (int j = 0; j < hashes.size() - Files.lines(pathHash).count(); ++j) {
+						int dH = 0;
+						for (int k = 0; k < readHash.size(); ++k) {
+							dH += HammingDistance.countDistance(Long.parseLong(readHash.get(k)), Long.parseLong(hashes.get(k + j)));
+						}
+						if (dH < distanceHHash) {
+							foundHHash = i;
+							distanceHHash = dH;
+						}
 					}
 				}
 			}
 			////////////////////////////////////////////////////////// Поиск по частотам
-			Path pathFr = Paths.get(".\\DB\\" + db[i]);
-			List<String> readFr = Files.readAllLines(pathFr);
-			if (Files.lines(pathFr).count() > freqs.size())
-			{
-				for (int j = 0; j < Files.lines(pathFr).count() - freqs.size(); ++j)
-				{
-					int dH = 0;
-					int dS = 0;
-					for (int f = 0; f < freqs.size(); ++f)
-					{
-						String[] wordsF = freqs.get(f).split("\\s+");
-						String[] wordsR = readFr.get(f + j).split("\\s+");
-						for (int k = 0; k < 5; ++k)
-						{
-							dH += HammingDistance.countDistance(Long.parseLong(wordsF[k]), Long.parseLong(wordsR[k]));
-							dS += SubtractionDistance.countDistance(Long.parseLong(wordsF[k]), Long.parseLong(wordsR[k]));
+			if (sub) {
+				if (Files.lines(pathFr).count() > freqs.size()) {
+					for (int j = 0; j < Files.lines(pathFr).count() - freqs.size(); ++j) {
+						int dS = 0;
+						for (int f = 0; f < freqs.size(); ++f) {
+							String[] wordsF = freqs.get(f).split("\\s+");
+							String[] wordsR = readFr.get(f + j).split("\\s+");
+							for (int k = 0; k < 5; ++k) {
+								dS += SubtractionDistance.countDistance(Long.parseLong(wordsF[k]), Long.parseLong(wordsR[k]));
+							}
+						}
+						if (dS < distanceSFr) {
+							foundSFr = i;
+							distanceSFr = dS;
 						}
 					}
-					if (dH < distanceHFr)
-					{
-						foundHFr = i;
-						distanceHFr = dH;
-					}
-					if (dS < distanceSFr)
-					{
-						foundSFr = i;
-						distanceSFr = dS;
-					}
-				}
-			}
-			else
-			{
-				for (int j = 0; j < freqs.size() - Files.lines(pathFr).count(); ++j)
-				{
-					int dH = 0;
-					int dS = 0;
-					for (int f = 0; f < readFr.size(); ++f)
-					{
-						String[] wordsF = freqs.get(f + j).split("\\s+");
-						String[] wordsR = readFr.get(f).split("\\s+");
-						for (int k = 0; k < 5; ++k)
-						{
-							dH += HammingDistance.countDistance(Long.parseLong(wordsF[k]), Long.parseLong(wordsR[k]));
-							dS += SubtractionDistance.countDistance(Long.parseLong(wordsF[k]), Long.parseLong(wordsR[k]));
+				} else {
+					for (int j = 0; j < freqs.size() - Files.lines(pathFr).count(); ++j) {
+						int dS = 0;
+						for (int f = 0; f < readFr.size(); ++f) {
+							String[] wordsF = freqs.get(f + j).split("\\s+");
+							String[] wordsR = readFr.get(f).split("\\s+");
+							for (int k = 0; k < 5; ++k) {
+								dS += SubtractionDistance.countDistance(Long.parseLong(wordsF[k]), Long.parseLong(wordsR[k]));
+							}
+						}
+						if (dS < distanceSFr) {
+							foundSFr = i;
+							distanceSFr = dS;
 						}
 					}
-					if (dH < distanceHFr)
-					{
-						foundHFr = i;
-						distanceHFr = dH;
-					}
-					if (dS < distanceSFr)
-					{
-						foundSFr = i;
-						distanceSFr = dS;
+				}
+			}
+			if (fast) {
+				////////////////////////////////////////////////////////// Быстрый поиск по смещению
+				ArrayList<Integer> offset = new ArrayList<>();
+				for (int j = 0; j < readHash.size(); ++j) {
+					for (int k = 0; k < hashes.size() && k <= j; ++k) {
+						if (readHash.get(j).equals(hashes.get(k))) {
+							offset.add(j - k);
+						}
 					}
 				}
-			}*/
-			////////////////////////////////////////////////////////// Быстрый поиск по смещению
-			ArrayList<Integer> offset = new ArrayList<>();
-			for (int j = 0; j < readHash.size(); ++j)
-			{
-				for (int k = 0; k < hashes.size() && k <= j; ++k)
-				{
-					if (readHash.get(j).equals(hashes.get(k)))
-					{
-						offset.add(j - k);
+				for (int j = 0; j < offset.size() - 1; ++j) {
+					int match = 0;
+					for (int k = j + 1; k < offset.size(); k++) {
+						if (offset.get(j).equals(offset.get(k))) {
+							++match;
+						}
+					}
+					if (match > matches) {
+						matches = match;
+						foundOf = i;
 					}
 				}
 			}
-			for (int j = 0; j < offset.size() - 1; ++j)
-			{
-				int match = 0;
-				for (int k = j + 1; k < offset.size(); k++)
-				{
-					if (offset.get(j).equals(offset.get(k)))
-					{
-						++match;
-					}
-				}
-				if (match > matches)
-				{
-					matches = match;
-					foundOf = i;
-				}
-			}
-			System.out.println(matches);
 		}
-		/*System.out.println("Hash Hamming: " + distanceHHash + " " + foundHHash);
-		System.out.println("Hash Sub: " + distanceSHash + " " + foundSHash);
-		System.out.println("Frequencies Hamming: " + distanceHFr + " " + foundHFr);
-		System.out.println("Frequencies Sub: " + distanceSFr + " " + foundSFr);*/
+		System.out.println("Hash Hamming: " + distanceHHash + " " + foundHHash);
+		System.out.println("Frequencies Sub: " + distanceSFr + " " + foundSFr);
 		System.out.println("Offset: " + matches + " " + db[foundOf]);
 	}
 
