@@ -21,7 +21,7 @@ public class Main
 
 class Analyzer
 {
-	Boolean running = true;
+	Boolean running = false;
 	Boolean searching = true;
 	Boolean fast = false;
 	Boolean hamming = false;
@@ -46,12 +46,14 @@ class Analyzer
 		JButton recalculateBut = new JButton("Recalculate");
 		recalculateBut.setBounds(202,200,95,30);
 		myFrame.add(recalculateBut);
-		searchBut.addActionListener(new ActionListener() {
+		searchBut.addActionListener(new ActionListener()
+		{
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
 				searching = true;
-				myFrame.removeAll();
+				myFrame.getContentPane().removeAll();
+				myFrame.repaint();
 				JButton hammingBut = new JButton("Hamming search");
 				hammingBut.setBounds(100,100,150,30);
 				myFrame.add(hammingBut);
@@ -61,36 +63,40 @@ class Analyzer
 				JButton fastBut = new JButton("Fast search");
 				fastBut.setBounds(100,200,150,30);
 				myFrame.add(fastBut);
-				searching = true;
 				fast = false;
 				hamming = false;
-				hammingBut.addActionListener(new ActionListener() {
+				sub = false;
+				hammingBut.addActionListener(new ActionListener()
+				{
 					@Override
-					public void actionPerformed(ActionEvent e) {
+					public void actionPerformed(ActionEvent e)
+					{
 						hamming = true;
-						myFrame.removeAll();
 						Analyze();
 					}
 				});
-				subBut.addActionListener(new ActionListener() {
+				subBut.addActionListener(new ActionListener()
+				{
 					@Override
-					public void actionPerformed(ActionEvent e) {
+					public void actionPerformed(ActionEvent e)
+					{
 						sub = true;
-						myFrame.removeAll();
 						Analyze();
 					}
 				});
-				fastBut.addActionListener(new ActionListener() {
+				fastBut.addActionListener(new ActionListener()
+				{
 					@Override
-					public void actionPerformed(ActionEvent e) {
+					public void actionPerformed(ActionEvent e)
+					{
 						fast = true;
-						myFrame.removeAll();
 						Analyze();
 					}
 				});
 			}
 		});
-		recalculateBut.addActionListener(new ActionListener() {
+		recalculateBut.addActionListener(new ActionListener()
+		{
 			public void actionPerformed(ActionEvent e)
 			{
 				searching = false;
@@ -103,61 +109,31 @@ class Analyzer
 	{
 		try
 		{
-			ArrayList<String> hashes = new ArrayList<>();
-			ArrayList<String> freqs = new ArrayList<>();
 
 			if (searching)
 			{
-				JButton b=new JButton("Stop");
+				myFrame.getContentPane().removeAll();
+				myFrame.repaint();
+				JButton b=new JButton("Start/Stop");
 				b.setBounds(202,100,95,30);
 				myFrame.add(b);
 				b.addActionListener(new ActionListener()
 				{
 					public void actionPerformed(ActionEvent e)
 					{
-						running = false;
+						running = !running;
+						if (running)
+						{
+							thread.start();
+						}
 					}
 				});
 
-				byte[] buffer = new byte[2048];
-				final AudioFormat format = getFormat(); //Заполнить объект класса AudioFormat параметрами
-				DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
-				final TargetDataLine line = (TargetDataLine) AudioSystem.getLine(info);
-				line.open(format, buffer.length);
-				line.start();
-
-				ByteArrayOutputStream out = new ByteArrayOutputStream();
-				running = true;
-				try
-				{
-					while (running)
-					{
-						int count = line.read(buffer, 0, buffer.length);
-						if (count > 0)
-						{
-							out.write(buffer, 0, count);
-						}
-						Complex[][] results = Transform(out);
-
-						Determinator determinator = new Determinator();
-						ArrayList<String>[] determinatedData = determinator.Determinate(results);
-						hashes = determinatedData[0];
-						freqs = determinatedData[1];
-					}
-					out.close();
-					String res = search(hashes, freqs);
-					JLabel label = new JLabel(res);
-					label.setBounds(202,200,95,30);
-					myFrame.add(label);
-				}
-				catch (IOException e)
-				{
-					System.err.println("I/O problems: " + e);
-					System.exit(-1);
-				}
 			}
 			else
 			{
+				ArrayList<String> hashes = new ArrayList<>();
+				ArrayList<String> freqs = new ArrayList<>();
 				//BASE/////////////////////////////////////////////////////////////////
 				final AudioFormat format = getFormat();
 				File musicBase = new File(".\\Music");
@@ -231,6 +207,65 @@ class Analyzer
 			System.exit(-1);
 		}
 	}
+
+
+	Thread thread = new Thread(){
+		public void run()
+		{
+			ArrayList<String> hashes = new ArrayList<>();
+			ArrayList<String> freqs = new ArrayList<>();
+			byte[] buffer = new byte[2048];
+			final AudioFormat format = getFormat(); //Заполнить объект класса AudioFormat параметрами
+			DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+			final TargetDataLine line;
+			try
+			{
+				line = (TargetDataLine) AudioSystem.getLine(info);
+			}
+			catch (LineUnavailableException e)
+			{
+				throw new RuntimeException(e);
+			}
+			try
+			{
+				line.open(format, buffer.length);
+			}
+			catch (LineUnavailableException e)
+			{
+				throw new RuntimeException(e);
+			}
+			line.start();
+
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			try
+			{
+				while (running)
+				{
+					int count = line.read(buffer, 0, buffer.length);
+					if (count > 0)
+					{
+						out.write(buffer, 0, count);
+					}
+					Complex[][] results = Transform(out);
+
+					Determinator determinator = new Determinator();
+					ArrayList<String>[] determinatedData = determinator.Determinate(results);
+					hashes = determinatedData[0];
+					freqs = determinatedData[1];
+				}
+				out.close();
+				String res = search(hashes, freqs);
+				JLabel label = new JLabel(res);
+				label.setBounds(50, 200, 400, 30);
+				myFrame.add(label);
+				myFrame.repaint();
+			} catch (IOException e)
+			{
+				System.err.println("I/O problems: " + e);
+				System.exit(-1);
+			}
+		}
+	};
 
 	private String search(ArrayList<String> hashes, ArrayList<String> freqs) throws IOException
 	{
@@ -338,7 +373,7 @@ class Analyzer
 						foundOf = i;
 					}
 				}
-				return "Offset: " + matches + " " + db[foundOf];
+				return "Fast search found: " + matches + " matchts in " + db[foundOf];
 			}
 		}
 		return "error";
