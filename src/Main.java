@@ -382,6 +382,8 @@ class Analyzer
 							else
 							{
 								offset.put(String.valueOf(j - k), offset.get(String.valueOf(j - k)) + 1);
+								if (offset.get(String.valueOf(j - k)) > 2)
+									System.out.println(i + " " + (j - k) + " " + offset.get(String.valueOf(j - k)));
 							}
 						}
 					}
@@ -488,7 +490,7 @@ class AnalyzeData
 
 class Determinator
 {
-	public final int[] RANGE = new int[] { 65, 130, 250, 400, AnalyzeData.UPPER_LIMIT+1 };
+	public final int[] RANGE = new int[] { 50, 100, 220, 350, AnalyzeData.UPPER_LIMIT+1 };
 	private ArrayList<String> hashes = new ArrayList<>();
 	private ArrayList<String> freqs = new ArrayList<>();
 
