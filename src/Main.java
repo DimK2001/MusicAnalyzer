@@ -382,8 +382,6 @@ class Analyzer
 							else
 							{
 								offset.put(String.valueOf(j - k), offset.get(String.valueOf(j - k)) + 1);
-								if (offset.get(String.valueOf(j - k)) > 2)
-									System.out.println(i + " " + (j - k) + " " + offset.get(String.valueOf(j - k)));
 							}
 						}
 					}
