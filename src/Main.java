@@ -206,7 +206,8 @@ class Analyzer
 	}
 
 
-	Thread thread = new Thread(){
+	Thread thread = new Thread()
+	{
 		public void run()
 		{
 			ArrayList<String> hashes = new ArrayList<>();
@@ -441,34 +442,33 @@ class FFT
 	public static Complex[] fft(Complex[] x)
 	{
 		int n = x.length;
-		// Базовый случай
+		//Базовый случай
 		if (n == 1) return new Complex[] { x[0] };
 
-		// проверка n - степень 2, для алгоритма Кули — Тьюки
+		//Проверка n - степень 2, для алгоритма Кули — Тьюки
 		if (n % 2 != 0)
 		{
 			throw new IllegalArgumentException("n не делится на 2");
 		}
 
-		// FFT для четных
+		//FFT для четных
 		Complex[] half = new Complex[n/2];
-		for (int k = 0; k < n/2; k++)
+		for (int k = 0; k < n/2; ++k)
 		{
 			half[k] = x[2*k];
 		}
 		Complex[] evenFFT = fft(half);
 
-		// повтор FFT для нечетных
-		// Повторо работаем с массивом half
-		for (int k = 0; k < n/2; k++)
+		//Повтор FFT для нечетных
+		for (int k = 0; k < n/2; ++k)
 		{
 			half[k] = x[2*k + 1];
 		}
 		Complex[] oddFFT = fft(half);
 
-		// объединение
+		//Объединение
 		Complex[] freqs = new Complex[n];
-		for (int k = 0; k < n/2; k++)
+		for (int k = 0; k < n/2; ++k)
 		{
 			double kth = -2 * k * Math.PI / n;
 			Complex complexExp = new Complex(Math.cos(kth), Math.sin(kth)).multiply(oddFFT[k]);
