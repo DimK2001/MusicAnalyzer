@@ -276,7 +276,7 @@ class Analyzer
 		int distanceHHash = 10000000;
 
 		int foundSFr = 0;
-		long distanceSFr = Long.MAX_VALUE;
+		long distanceSFr = 10000000;
 
 		int foundOf = 0;
 		int matches = 0;
@@ -327,7 +327,8 @@ class Analyzer
 				List<String> readFr = Files.readAllLines(pathFr);
 				if (Files.lines(pathFr).count() > freqs.size())
 				{
-					for (int j = 0; j < Files.lines(pathFr).count() - freqs.size(); ++j) {
+					for (int j = 0; j < Files.lines(pathFr).count() - freqs.size(); ++j)
+					{
 						int dS = 0;
 						for (int f = 0; f < freqs.size(); ++f)
 						{
@@ -336,6 +337,10 @@ class Analyzer
 							for (int k = 0; k < 5; ++k)
 							{
 								dS += SubtractionDistance.countDistance(Long.parseLong(wordsF[k]), Long.parseLong(wordsR[k]));
+							}
+							if (dS > distanceSFr)
+							{
+								break;
 							}
 						}
 						if (dS < distanceSFr) {
@@ -419,7 +424,7 @@ class Analyzer
 	{
 		byte[] audio = out.toByteArray();
 		final int totalSize = audio.length;
-		int amountPossible = totalSize/ AnalyzeData.CHUNK_SIZE;
+		int amountPossible = totalSize / AnalyzeData.CHUNK_SIZE;
 		Complex[][] results = new Complex[amountPossible][];
 
 		//Для всех кусков:
@@ -508,9 +513,9 @@ class Determinator
 		double[] highscores = new double[AnalyzeData.UPPER_LIMIT];
 		int[] recordPoints = new int[AnalyzeData.UPPER_LIMIT];
 
-		for (int i = 0; i < results.length; i++)
+		for (int i = 0; i < results.length; ++i)
 		{
-			for (int freq = AnalyzeData.LOWER_LIMIT; freq < AnalyzeData.UPPER_LIMIT - 1; freq++)
+			for (int freq = AnalyzeData.LOWER_LIMIT; freq < AnalyzeData.UPPER_LIMIT - 1; ++freq)
 			{
 				//Получим силу сигнала
 				double mag = Math.log(results[i][freq].abs() + 1);
